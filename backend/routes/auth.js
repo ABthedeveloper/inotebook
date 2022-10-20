@@ -3,13 +3,15 @@ const router = express.Router();
 const User = require('../models/User');
 const { body, validationResult } = require('express-validator');
 
+// create a User using: POST "/api/auth/createuser". no login required
 
-router.post('/',
+router.post('/createuser',
     [body('name','Enter a Valid Name').isLength({ min: 5 }),
     body('email','Enter a valid email').isEmail(),
     body('password','Password must be atleast 5 character').isLength({ min: 5 })],
 
-    (req, res) => {
+    //if there are errors, return Bad request and the errors
+    async(req, res) => {
 
 
         const errors = validationResult(req);
@@ -17,11 +19,31 @@ router.post('/',
             return res.status(400).json({ errors: errors.array() });
         }
 
-        User.create({
+
+        // check whether the user with this email exists already
+
+        try{
+    
+       let user = await User.findOne({email: req.body.email});
+       console.log(user)
+       if(user){
+        return res.status(400).json({error:"sorry a user with this email already exist"})
+       }
+       user = await User.create({
             name: req.body.name,
             email: req.body.email,
             password: req.body.password
-          }).then(user => res.json(user));
+          })
+          
+          .then(user => res.json(user));
+
+        } catch(error){
+
+            console.error(error.message);
+            res.status(500).send("some error occured");
+            
+        }
+
 
     })
 
